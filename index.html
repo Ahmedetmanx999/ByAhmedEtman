@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="روتيني Pro">
+    
+    <title>منظم اليوم والروتين الذكي Pro | Persistent PWA Planner</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        darkbg: '#0b0f19',
+                        darkcard: '#151d2a',
+                        darkborder: '#243042'
+                    },
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2.5s infinite',
+                        'float': 'float 3.5s ease-in-out infinite',
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'slide-up': 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 15px rgba(99, 102, 241, 0.35)' },
+                            '50%': { boxShadow: '0 0 25px rgba(99, 102, 241, 0.75)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-6px)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(18px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            scroll-behavior: smooth;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+        .dark .glass-panel {
+            background: rgba(21, 29, 42, 0.8);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+        .active-task-card {
+            border-color: #6366f1 !important;
+            animation: pulseGlow 2.5s infinite;
+        }
+        .save-indicator-active {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-darkbg text-slate-800 dark:text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white transition-colors duration-300">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-slate-200/80 dark:border-darkborder shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25 animate-float flex-shrink-0">
+                    <i class="fa-solid fa-bolt text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-extrabold text-base sm:text-lg leading-tight text-slate-900 dark:text-white">منظم اليوم والروتين</h1>
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white uppercase">PRO</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">خطط، ركز، وحقق إنجازاتك اليومية</p>
+                </div>
+            </div>
+
+            <!-- Auto-Save Status Indicator Badge -->
+            <div id="save-status-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition-all duration-300 opacity-90">
+                <i class="fa-solid fa-cloud-arrow-up text-emerald-500"></i>
+                <span id="save-status-text" class="hidden sm:inline">تم الحفظ تلقائياً ✓</span>
+            </div>
+
+            <!-- Actions Controls -->
+            <div class="flex items-center gap-2">
+                <!-- PWA Install Button (Hidden by default, shown when install prompt triggers) -->
+                <button id="btn-pwa-install" class="hidden bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-extrabold px-3 py-2 rounded-xl shadow-md shadow-emerald-500/20 flex items-center gap-1.5 active:scale-95 transition-all">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden md:inline">تثبيت التطبيق</span>
+                </button>
+
+                <!-- Level Badge -->
+                <div class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-extrabold" title="مستوى الإنتاجية">
+                    <i class="fa-solid fa-crown text-amber-500 text-xs"></i>
+                    <span id="header-user-level">مستوى 1</span>
+                </div>
+
+                <!-- Template Selector Button -->
+                <button id="btn-open-templates" class="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 border border-brand-200/50 dark:border-brand-800/50 transition active:scale-95">
+                    <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i>
+                    <span class="hidden sm:inline">القوالب</span>
+                </button>
+
+                <!-- Settings Button -->
+                <button id="btn-open-settings" class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="إعدادات">
+                    <i class="fa-solid fa-gear text-base"></i>
+                </button>
+
+                <!-- Dark / Light Toggle -->
+                <button id="theme-toggle" class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="تبديل المظهر">
+                    <i id="theme-toggle-dark-icon" class="fa-solid fa-moon text-base hidden"></i>
+                    <i id="theme-toggle-light-icon" class="fa-solid fa-sun text-base hidden"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Grid Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: Timeline & Tasks (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-6 animate-fade-in">
+
+            <!-- Progress Banner -->
+            <div class="bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl shadow-brand-500/15 relative overflow-hidden group">
+                <div class="absolute -left-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
+                <div class="absolute -right-12 -bottom-12 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl"></div>
+                
+                <div class="flex justify-between items-start mb-4 relative z-10">
+                    <div>
+                        <span class="text-[11px] uppercase tracking-widest font-extrabold text-indigo-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-line"></i> تقدم اليوم الشخصي
+                        </span>
+                        <h2 id="greeting-title" class="text-2xl sm:text-3xl font-black mt-1 tracking-tight">جاهز لإنجاز يومك؟</h2>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span id="completion-percentage" class="text-3xl sm:text-4xl font-black bg-white/20 backdrop-blur-md px-3.5 py-1 rounded-2xl border border-white/20 shadow-inner">0%</span>
+                        <span id="xp-text" class="text-[11px] font-extrabold text-amber-300 mt-1"><i class="fa-solid fa-star"></i> +0 XP</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-black/25 rounded-full h-3.5 overflow-hidden p-0.5 relative z-10 border border-white/10">
+                    <div id="day-progress-bar" class="bg-gradient-to-r from-amber-300 via-emerald-300 to-white h-full rounded-full transition-all duration-700 ease-out shadow-sm" style="width: 0%"></div>
+                </div>
+
+                <div class="flex justify-between items-center text-xs text-indigo-100 font-semibold mt-4 relative z-10">
+                    <span id="completed-count-text"><i class="fa-solid fa-circle-check ml-1 text-emerald-300"></i> 0 من 0 مهام مكتملة</span>
+                    <span id="current-date-text" class="bg-white/10 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-white/10 text-[11px]"><i class="fa-regular fa-calendar ml-1"></i> --/--/----</span>
+                </div>
+            </div>
+
+            <!-- Schedule Header & Actions -->
+            <div class="bg-white dark:bg-darkcard rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 dark:border-darkborder transition-all duration-300">
+                <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2.5 rounded-2xl bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400">
+                            <i class="fa-solid fa-calendar-day text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white leading-tight">الجدول والمهام اليومية</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">نظّم وقتك بأسلوب الأوقات المحددة (Time Blocking)</p>
+                        </div>
+                    </div>
+                    <button id="btn-add-task-modal" class="bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg shadow-brand-500/25">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>إضافة مهمة</span>
+                    </button>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" id="category-filters">
+                    <button data-cat="ALL" class="cat-filter active px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-600 text-white whitespace-nowrap shadow-sm transition-all">الكل</button>
+                    <button data-cat="Study" class="cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 whitespace-nowrap transition-all">📚 مذاكرة</button>
+                    <button data-cat="Coding" class="cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 whitespace-nowrap transition-all">💻 برمجة</button>
+                    <button data-cat="Exercise" class="cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 whitespace-nowrap transition-all">🏋️ رياضة</button>
+                    <button data-cat="Work" class="cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 whitespace-nowrap transition-all">💼 عمل</button>
+                    <button data-cat="Personal" class="cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 whitespace-nowrap transition-all">🌱 شخصي</button>
+                </div>
+
+                <!-- Tasks List -->
+                <div id="tasks-container" class="mt-4 space-y-3 min-h-[260px]">
+                    <!-- Tasks injected dynamically -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: Routine Habits & Pomodoro Focus (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6 animate-fade-in" style="animation-delay: 0.1s;">
+
+            <!-- Pomodoro Timer Card -->
+            <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-darkborder text-center relative overflow-hidden transition-all duration-300">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <span class="text-xs font-bold px-3 py-1 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1.5">
+                        <i class="fa-solid fa-stopwatch text-amber-500"></i>
+                        مؤقت التركيز
+                    </span>
+                    <div class="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs">
+                        <button id="pomo-mode-work" class="px-3 py-1 rounded-lg font-bold bg-brand-600 text-white shadow-sm transition-all">تركيز (25)</button>
+                        <button id="pomo-mode-deep" class="px-3 py-1 rounded-lg font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-all">عميق (50)</button>
+                        <button id="pomo-mode-break" class="px-3 py-1 rounded-lg font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-all">راحة (5)</button>
+                    </div>
+                </div>
+
+                <!-- Timer Ring -->
+                <div class="my-4 relative inline-block">
+                    <div id="timer-display" class="text-6xl sm:text-7xl font-black font-mono tracking-tight text-slate-900 dark:text-white drop-shadow-sm">25:00</div>
+                    <p id="pomo-status-text" class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2">جلسة تركيز بدون تشتت!</p>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex items-center justify-center gap-3 mt-4">
+                    <button id="btn-start-pomo" class="bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm px-6 py-3 rounded-2xl transition-all flex items-center gap-2 shadow-lg shadow-brand-500/25">
+                        <i class="fa-solid fa-play"></i>
+                        <span>ابدأ الجلسة</span>
+                    </button>
+                    <button id="btn-pause-pomo" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-100 font-extrabold text-xs sm:text-sm px-5 py-3 rounded-2xl transition-all hidden">
+                        <i class="fa-solid fa-pause"></i>
+                        <span>إيقاف</span>
+                    </button>
+                    <button id="btn-reset-pomo" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-500 p-3 rounded-2xl transition-all" title="إعادة ضبط">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-around text-xs text-slate-500 dark:text-slate-400 font-bold">
+                    <span><i class="fa-solid fa-circle-check text-brand-500 ml-1"></i> الجلسات اليوم: <strong id="completed-pomo-count" class="text-slate-800 dark:text-slate-200">0</strong></span>
+                    <span><i class="fa-solid fa-clock text-emerald-500 ml-1"></i> الدقائق: <strong id="pomo-total-mins" class="text-slate-800 dark:text-slate-200">0</strong> د</span>
+                </div>
+            </div>
+
+            <!-- Habits Tracker -->
+            <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-darkborder transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                            <i class="fa-solid fa-fire text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white leading-tight">الروتين والعادات</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">عادات يومية بناءة</p>
+                        </div>
+                    </div>
+                    <button id="btn-add-habit" class="text-xs text-brand-600 dark:text-brand-400 hover:underline font-extrabold">+ عادة جديدة</button>
+                </div>
+
+                <!-- Habits Tabs -->
+                <div class="flex border-b border-slate-200 dark:border-slate-800 mb-4">
+                    <button id="tab-morning" class="py-2.5 px-4 font-bold text-xs border-b-2 border-brand-600 text-brand-600 dark:text-brand-400 flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-sun text-amber-500"></i> الروتين الصباحي
+                    </button>
+                    <button id="tab-evening" class="py-2.5 px-4 font-bold text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-moon text-indigo-400"></i> الروتين المسائي
+                    </button>
+                </div>
+
+                <div id="habits-list-container" class="space-y-2.5">
+                    <!-- Habits injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Analytics Chart -->
+            <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-darkborder transition-all duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-emerald-500 text-lg"></i>
+                        <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white">توزيع وقت المهام</h3>
+                    </div>
+                </div>
+                
+                <div class="h-44 w-full flex items-center justify-center">
+                    <canvas id="analyticsChart"></canvas>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL 1: Add/Edit Task -->
+    <div id="modal-task" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center hidden p-4 animate-fade-in">
+        <div class="bg-white dark:bg-darkcard rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-darkborder relative animate-slide-up">
+            <button id="btn-close-task-modal" class="absolute top-5 left-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 id="modal-task-title" class="text-xl font-bold mb-5 text-slate-900 dark:text-white">إضافة مهمة جديدة</h3>
+            
+            <form id="task-form" class="space-y-4">
+                <input type="hidden" id="task-id">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">عنوان المهمة</label>
+                    <input type="text" id="task-title-input" required placeholder="مثال: حل شيت البرمجة / مذاكرة رياضيات" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-semibold">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">وقت البداية</label>
+                        <input type="time" id="task-start-time" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">وقت النهاية</label>
+                        <input type="time" id="task-end-time" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-semibold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">التصنيف</label>
+                        <select id="task-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-semibold">
+                            <option value="Study">📚 مذاكرة</option>
+                            <option value="Coding">💻 برمجة</option>
+                            <option value="Exercise">🏋️ رياضة</option>
+                            <option value="Work">💼 عمل</option>
+                            <option value="Personal">🌱 شخصي</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">الأولوية</label>
+                        <select id="task-priority" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-semibold">
+                            <option value="High">🔴 عالية جداً</option>
+                            <option value="Medium" selected>🟡 متوسطة</option>
+                            <option value="Low">🟢 منخفضة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex justify-end gap-2">
+                    <button type="button" id="btn-cancel-task" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition">إلغاء</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/20 transition">حفظ المهمة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Templates Selection -->
+    <div id="modal-templates" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center hidden p-4 animate-fade-in">
+        <div class="bg-white dark:bg-darkcard rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-darkborder relative animate-slide-up max-h-[90vh] flex flex-col">
+            <button id="btn-close-templates-modal" class="absolute top-5 left-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-1 text-slate-900 dark:text-white">اختر القالب المناسب ليومك</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">قوالب يومية متكاملة لزيادة الإنتاجية.</p>
+
+            <div class="flex items-center gap-3 bg-slate-100 dark:bg-slate-800/80 p-2.5 rounded-2xl mb-4 text-xs font-bold">
+                <span class="text-slate-600 dark:text-slate-300">طريقة التطبيق:</span>
+                <label class="flex items-center gap-1.5 cursor-pointer ml-2">
+                    <input type="radio" name="template-apply-mode" value="merge" checked class="text-brand-600">
+                    <span>دمج مع الحالي</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="template-apply-mode" value="replace" class="text-brand-600">
+                    <span class="text-red-500">استبدال بالكامل</span>
+                </label>
+            </div>
+
+            <div class="space-y-3 overflow-y-auto pr-1 flex-1">
+                <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 transition cursor-pointer bg-slate-50/50 dark:bg-slate-800/40" onclick="app.applyTemplate('high_school')">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="font-bold text-sm text-brand-600 dark:text-brand-400">🎓 روتين الطالب والمذاكرة المكثفة</h4>
+                        <span class="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-300 font-bold px-2 py-0.5 rounded-md">5 مهام</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">جدول للمذاكرة المبكرة، المحاضرات، والمراجعة الفعالة.</p>
+                </div>
+
+                <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 transition cursor-pointer bg-slate-50/50 dark:bg-slate-800/40" onclick="app.applyTemplate('coder_pro')">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="font-bold text-sm text-brand-600 dark:text-brand-400">💻 روتين المبرمج والمطور</h4>
+                        <span class="text-[10px] bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">4 مهام</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">تركيز على بناء الأكواد والمشاريع والتعلم اليومي.</p>
+                </div>
+
+                <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 transition cursor-pointer bg-slate-50/50 dark:bg-slate-800/40" onclick="app.applyTemplate('deep_work')">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="font-bold text-sm text-brand-600 dark:text-brand-400">🧠 روتين التركيز العميق (Deep Work)</h4>
+                        <span class="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">4 مهام</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">مخصص لإنجاز أضخم المهام بدون تشتت.</p>
+                </div>
+
+                <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 transition cursor-pointer bg-slate-50/50 dark:bg-slate-800/40" onclick="app.applyTemplate('fitness_health')">
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="font-bold text-sm text-brand-600 dark:text-brand-400">🏋️ روتين الصحة والرياضة</h4>
+                        <span class="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">4 مهام</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">تركيز على التمارين والتغذية والتأمل.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Settings & Backup -->
+    <div id="modal-settings" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center hidden p-4 animate-fade-in">
+        <div class="bg-white dark:bg-darkcard rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-darkborder relative animate-slide-up">
+            <button id="btn-close-settings-modal" class="absolute top-5 left-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-4 text-slate-900 dark:text-white">إعدادات الحفظ والنسخ الاحتياطي</h3>
+            
+            <div class="space-y-3">
+                <button onclick="app.exportData()" class="w-full p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 font-bold text-xs flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
+                    <span><i class="fa-solid fa-download text-brand-500 ml-2"></i> تصدير النسخة الاحتياطية (JSON)</span>
+                    <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </button>
+
+                <label class="w-full p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 font-bold text-xs flex items-center justify-between text-slate-800 dark:text-slate-200 transition cursor-pointer">
+                    <span><i class="fa-solid fa-upload text-emerald-500 ml-2"></i> استيراد ملف النسخة الاحتياطية</span>
+                    <input type="file" id="import-file" accept=".json" class="hidden" onchange="app.importData(event)">
+                    <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </label>
+
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <button onclick="app.resetDayProgress()" class="w-full p-3 rounded-2xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>إعادة تصفير إنجاز اليوم</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Dynamic Web App Manifest Injection -->
+    <script>
+        (function injectPWAManifest() {
+            const manifestObj = {
+                name: "منظم اليوم والروتين الذكي Pro",
+                short_name: "روتيني",
+                description: "تطبيق متكامل لتنظيم اليوم والروتين وإدارة المهام",
+                start_url: "./",
+                display: "standalone",
+                background_color: "#0b0f19",
+                theme_color: "#4f46e5",
+                orientation: "portrait-primary",
+                icons: [{
+                    src: "https://cdn-icons-png.flaticon.com/512/3652/3652191.png",
+                    sizes: "512x512",
+                    type: "image/png"
+                }]
+            };
+            const stringManifest = JSON.stringify(manifestObj);
+            const blob = new Blob([stringManifest], {type: 'application/json'});
+            const manifestURL = URL.createObjectURL(blob);
+            const linkElem = document.createElement('link');
+            linkElem.rel = 'manifest';
+            linkElem.href = manifestURL;
+            document.head.appendChild(linkElem);
+        })();
+
+        // Register Inline Blob Service Worker for Offline PWA Support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    const CACHE_NAME = 'routine-planner-v1';
+                    self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+                    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+                    self.addEventListener('fetch', e => {
+                        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(err => console.log('SW register handled:', err));
+            });
+        }
+    </script>
+
+    <!-- Main Engine JavaScript Script -->
+    <script>
+        class LifePlannerEngine {
+            constructor() {
+                // Persistent State Load with Error Guardrails
+                this.tasks = this.loadSafe('planner_tasks', []);
+                this.habits = this.loadSafe('planner_habits', this.getDefaultHabits());
+                this.focusMinutesTracked = parseInt(this.loadSafe('planner_focus_time', 0)) || 0;
+                this.pomoSessionsCompleted = parseInt(this.loadSafe('planner_pomo_sessions', 0)) || 0;
+                
+                this.currentCategory = 'ALL';
+                this.currentHabitTab = 'morning';
+
+                // Pomodoro State
+                this.pomoDuration = 25 * 60;
+                this.pomoTimeLeft = this.pomoDuration;
+                this.pomoTimer = null;
+                this.pomoIsRunning = false;
+                this.pomoMode = 'work';
+
+                this.chartInstance = null;
+                this.deferredPWAInstallPrompt = null;
+
+                this.initUI();
+                this.bindEvents();
+                this.bindPWAEvents();
+                this.renderAll();
+
+                // Periodic Active Task Glow Check
+                setInterval(() => this.highlightCurrentActiveTask(), 60000);
+            }
+
+            loadSafe(key, fallback) {
+                try {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : fallback;
+                } catch (e) {
+                    console.warn(`Error loading key ${key}:`, e);
+                    return fallback;
+                }
+            }
+
+            saveData() {
+                try {
+                    localStorage.setItem('planner_tasks', JSON.stringify(this.tasks));
+                    localStorage.setItem('planner_habits', JSON.stringify(this.habits));
+                    localStorage.setItem('planner_focus_time', JSON.stringify(this.focusMinutesTracked));
+                    localStorage.setItem('planner_pomo_sessions', JSON.stringify(this.pomoSessionsCompleted));
+                    
+                    this.showSaveIndicator();
+                } catch (e) {
+                    console.error('Save failed:', e);
+                }
+            }
+
+            showSaveIndicator() {
+                const badge = document.getElementById('save-status-badge');
+                if (badge) {
+                    badge.classList.add('save-indicator-active');
+                    setTimeout(() => {
+                        badge.classList.remove('save-indicator-active');
+                    }, 1200);
+                }
+            }
+
+            getDefaultHabits() {
+                return [
+                    { id: 1, name: 'شرب كوب ماء دافئ عند الاستيقاظ', type: 'morning', completed: false },
+                    { id: 2, name: 'تمارين تمدد خفيفة (10 دقائق)', type: 'morning', completed: false },
+                    { id: 3, name: 'قراءة 10 صفحات من كتاب مفيد', type: 'morning', completed: false },
+                    { id: 4, name: 'إيقاف الشاشات قبل النوم بـ 30 دقيقة', type: 'evening', completed: false },
+                    { id: 5, name: 'كتابة أهم 3 إنجازات تمت اليوم', type: 'evening', completed: false }
+                ];
+            }
+
+            initUI() {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                    document.getElementById('theme-toggle-light-icon').classList.remove('hidden');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    document.getElementById('theme-toggle-dark-icon').classList.remove('hidden');
+                }
+
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                document.getElementById('current-date-text').innerHTML = `<i class="fa-regular fa-calendar ml-1"></i> ` + new Date().toLocaleDateString('ar-EG', options);
+            }
+
+            bindEvents() {
+                // Theme Toggle
+                document.getElementById('theme-toggle').addEventListener('click', () => {
+                    const isDark = document.documentElement.classList.toggle('dark');
+                    localStorage.theme = isDark ? 'dark' : 'light';
+                    document.getElementById('theme-toggle-dark-icon').classList.toggle('hidden', isDark);
+                    document.getElementById('theme-toggle-light-icon').classList.toggle('hidden', !isDark);
+                    this.renderChart();
+                });
+
+                // Category Filters
+                document.querySelectorAll('#category-filters button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('#category-filters button').forEach(b => {
+                            b.className = "cat-filter px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all";
+                        });
+                        e.target.className = "cat-filter active px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition-all";
+                        this.currentCategory = e.target.getAttribute('data-cat');
+                        this.renderTasks();
+                    });
+                });
+
+                // Modals Controls
+                document.getElementById('btn-add-task-modal').addEventListener('click', () => this.openTaskModal());
+                document.getElementById('btn-close-task-modal').addEventListener('click', () => this.closeTaskModal());
+                document.getElementById('btn-cancel-task').addEventListener('click', () => this.closeTaskModal());
+                
+                document.getElementById('btn-open-templates').addEventListener('click', () => document.getElementById('modal-templates').classList.remove('hidden'));
+                document.getElementById('btn-close-templates-modal').addEventListener('click', () => document.getElementById('modal-templates').classList.add('hidden'));
+
+                document.getElementById('btn-open-settings').addEventListener('click', () => document.getElementById('modal-settings').classList.remove('hidden'));
+                document.getElementById('btn-close-settings-modal').addEventListener('click', () => document.getElementById('modal-settings').classList.add('hidden'));
+
+                // Form Submit
+                document.getElementById('task-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveTask();
+                });
+
+                // Routine Tabs
+                document.getElementById('tab-morning').addEventListener('click', () => {
+                    this.currentHabitTab = 'morning';
+                    document.getElementById('tab-morning').className = "py-2.5 px-4 font-bold text-xs border-b-2 border-brand-600 text-brand-600 dark:text-brand-400 flex items-center gap-2 transition-all";
+                    document.getElementById('tab-evening').className = "py-2.5 px-4 font-bold text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-all";
+                    this.renderHabits();
+                });
+
+                document.getElementById('tab-evening').addEventListener('click', () => {
+                    this.currentHabitTab = 'evening';
+                    document.getElementById('tab-evening').className = "py-2.5 px-4 font-bold text-xs border-b-2 border-brand-600 text-brand-600 dark:text-brand-400 flex items-center gap-2 transition-all";
+                    document.getElementById('tab-morning').className = "py-2.5 px-4 font-bold text-xs border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-all";
+                    this.renderHabits();
+                });
+
+                // Add Custom Habit
+                document.getElementById('btn-add-habit').addEventListener('click', () => {
+                    const habitName = prompt('أدخل عنوان العادة الجديدة:');
+                    if (habitName && habitName.trim() !== '') {
+                        this.habits.push({ id: Date.now(), name: habitName.trim(), type: this.currentHabitTab, completed: false });
+                        this.saveData();
+                        this.renderHabits();
+                    }
+                });
+
+                // Pomodoro Timer Controls
+                document.getElementById('btn-start-pomo').addEventListener('click', () => this.startPomodoro());
+                document.getElementById('btn-pause-pomo').addEventListener('click', () => this.pausePomodoro());
+                document.getElementById('btn-reset-pomo').addEventListener('click', () => this.resetPomodoro());
+
+                document.getElementById('pomo-mode-work').addEventListener('click', () => this.setPomodoroMode('work', 25));
+                document.getElementById('pomo-mode-deep').addEventListener('click', () => this.setPomodoroMode('deep', 50));
+                document.getElementById('pomo-mode-break').addEventListener('click', () => this.setPomodoroMode('break', 5));
+            }
+
+            bindPWAEvents() {
+                const installBtn = document.getElementById('btn-pwa-install');
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPWAInstallPrompt = e;
+                    installBtn.classList.remove('hidden');
+                });
+
+                installBtn.addEventListener('click', async () => {
+                    if (this.deferredPWAInstallPrompt) {
+                        this.deferredPWAInstallPrompt.prompt();
+                        const { outcome } = await this.deferredPWAInstallPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            installBtn.classList.add('hidden');
+                        }
+                        this.deferredPWAInstallPrompt = null;
+                    }
+                });
+            }
+
+            openTaskModal(task = null) {
+                const modal = document.getElementById('modal-task');
+                modal.classList.remove('hidden');
+                if (task) {
+                    document.getElementById('modal-task-title').textContent = "تعديل مهمة";
+                    document.getElementById('task-id').value = task.id;
+                    document.getElementById('task-title-input').value = task.title;
+                    document.getElementById('task-start-time').value = task.startTime;
+                    document.getElementById('task-end-time').value = task.endTime;
+                    document.getElementById('task-category').value = task.category;
+                    document.getElementById('task-priority').value = task.priority;
+                } else {
+                    document.getElementById('modal-task-title').textContent = "إضافة مهمة جديدة";
+                    document.getElementById('task-id').value = '';
+                    document.getElementById('task-form').reset();
+                }
+            }
+
+            closeTaskModal() {
+                document.getElementById('modal-task').classList.add('hidden');
+            }
+
+            saveTask() {
+                const id = document.getElementById('task-id').value;
+                const title = document.getElementById('task-title-input').value;
+                const startTime = document.getElementById('task-start-time').value;
+                const endTime = document.getElementById('task-end-time').value;
+                const category = document.getElementById('task-category').value;
+                const priority = document.getElementById('task-priority').value;
+
+                if (id) {
+                    const task = this.tasks.find(t => t.id == id);
+                    if (task) {
+                        Object.assign(task, { title, startTime, endTime, category, priority });
+                    }
+                } else {
+                    this.tasks.push({ id: Date.now(), title, startTime, endTime, category, priority, completed: false });
+                }
+
+                this.tasks.sort((a, b) => a.startTime.localeCompare(b.startTime));
+                this.saveData();
+                this.closeTaskModal();
+                this.renderAll();
+            }
+
+            toggleTask(id) {
+                const task = this.tasks.find(t => t.id == id);
+                if (task) {
+                    task.completed = !task.completed;
+                    if (task.completed && this.tasks.every(t => t.completed) && typeof confetti === 'function') {
+                        confetti({ particleCount: 110, spread: 80, origin: { y: 0.6 } });
+                    }
+                    this.saveData();
+                    this.renderAll();
+                }
+            }
+
+            deleteTask(id) {
+                this.tasks = this.tasks.filter(t => t.id != id);
+                this.saveData();
+                this.renderAll();
+            }
+
+            toggleHabit(id) {
+                const habit = this.habits.find(h => h.id == id);
+                if (habit) {
+                    habit.completed = !habit.completed;
+                    this.saveData();
+                    this.renderHabits();
+                }
+            }
+
+            deleteHabit(id) {
+                this.habits = this.habits.filter(h => h.id != id);
+                this.saveData();
+                this.renderHabits();
+            }
+
+            applyTemplate(type) {
+                const mode = document.querySelector('input[name="template-apply-mode"]:checked').value;
+                let t = [];
+
+                if (type === 'high_school') {
+                    t = [
+                        { id: Date.now() + 1, title: 'الاستيقاظ والروتين الصباحي', startTime: '06:00', endTime: '06:45', category: 'Personal', priority: 'High', completed: false },
+                        { id: Date.now() + 2, title: 'جلسة مذاكرة عميقة (المادة الأساسية)', startTime: '07:00', endTime: '09:00', category: 'Study', priority: 'High', completed: false },
+                        { id: Date.now() + 3, title: 'المدرسة / المحاضرات الجامعية', startTime: '09:30', endTime: '14:00', category: 'Study', priority: 'High', completed: false },
+                        { id: Date.now() + 4, title: 'حل الشيتات والواجبات', startTime: '16:00', endTime: '18:00', category: 'Study', priority: 'Medium', completed: false },
+                        { id: Date.now() + 5, title: 'تمارين رياضية ومشي', startTime: '18:30', endTime: '19:30', category: 'Exercise', priority: 'Low', completed: false }
+                    ];
+                } else if (type === 'coder_pro') {
+                    t = [
+                        { id: Date.now() + 1, title: 'تخطيط المهام ومراجعة الكود', startTime: '09:00', endTime: '09:30', category: 'Coding', priority: 'Medium', completed: false },
+                        { id: Date.now() + 2, title: 'برمجة وبناء الميزات (Deep Coding)', startTime: '09:30', endTime: '12:30', category: 'Coding', priority: 'High', completed: false },
+                        { id: Date.now() + 3, title: 'إصلاح الأخطاء (Debugging)', startTime: '14:00', endTime: '16:00', category: 'Coding', priority: 'High', completed: false },
+                        { id: Date.now() + 4, title: 'تعلم تقنية جديدة', startTime: '16:30', endTime: '17:30', category: 'Study', priority: 'Medium', completed: false }
+                    ];
+                } else if (type === 'deep_work') {
+                    t = [
+                        { id: Date.now() + 1, title: 'جلسة تركيز مطلق 1', startTime: '08:00', endTime: '10:00', category: 'Work', priority: 'High', completed: false },
+                        { id: Date.now() + 2, title: 'جلسة تركيز مطلق 2', startTime: '10:30', endTime: '12:30', category: 'Work', priority: 'High', completed: false },
+                        { id: Date.now() + 3, title: 'إنهاء الرسائل والمهام اليومية', startTime: '14:00', endTime: '15:00', category: 'Personal', priority: 'Low', completed: false }
+                    ];
+                } else if (type === 'fitness_health') {
+                    t = [
+                        { id: Date.now() + 1, title: 'رياضة صباحية وشرب ماء', startTime: '07:00', endTime: '08:00', category: 'Exercise', priority: 'High', completed: false },
+                        { id: Date.now() + 2, title: 'تجهيز وتناول وجبة صحية', startTime: '12:30', endTime: '13:15', category: 'Personal', priority: 'Medium', completed: false },
+                        { id: Date.now() + 3, title: 'مشي خارجي أو كارديو', startTime: '17:30', endTime: '18:30', category: 'Exercise', priority: 'High', completed: false }
+                    ];
+                }
+
+                this.tasks = (mode === 'replace') ? t : [...this.tasks, ...t];
+                this.tasks.sort((a, b) => a.startTime.localeCompare(b.startTime));
+                this.saveData();
+                document.getElementById('modal-templates').classList.add('hidden');
+                this.renderAll();
+            }
+
+            // Synthesized Chime Audio Alert
+            playNotificationSound() {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+                } catch (e) {
+                    console.log('Audio Context handled');
+                }
+            }
+
+            setPomodoroMode(mode, mins) {
+                this.pausePomodoro();
+                this.pomoMode = mode;
+                this.pomoDuration = mins * 60;
+                this.pomoTimeLeft = this.pomoDuration;
+
+                document.getElementById('pomo-mode-work').className = mode === 'work' ? "px-3 py-1 rounded-lg font-bold bg-brand-600 text-white shadow-sm transition-all" : "px-3 py-1 rounded-lg font-bold text-slate-500 hover:text-slate-800 transition-all";
+                document.getElementById('pomo-mode-deep').className = mode === 'deep' ? "px-3 py-1 rounded-lg font-bold bg-purple-600 text-white shadow-sm transition-all" : "px-3 py-1 rounded-lg font-bold text-slate-500 hover:text-slate-800 transition-all";
+                document.getElementById('pomo-mode-break').className = mode === 'break' ? "px-3 py-1 rounded-lg font-bold bg-emerald-600 text-white shadow-sm transition-all" : "px-3 py-1 rounded-lg font-bold text-slate-500 hover:text-slate-800 transition-all";
+
+                this.updatePomoDisplay();
+            }
+
+            startPomodoro() {
+                if (this.pomoIsRunning) return;
+                this.pomoIsRunning = true;
+                document.getElementById('btn-start-pomo').classList.add('hidden');
+                document.getElementById('btn-pause-pomo').classList.remove('hidden');
+
+                this.pomoTimer = setInterval(() => {
+                    this.pomoTimeLeft--;
+                    this.updatePomoDisplay();
+
+                    if (this.pomoTimeLeft <= 0) {
+                        clearInterval(this.pomoTimer);
+                        this.pomoIsRunning = false;
+                        this.playNotificationSound();
+
+                        if (this.pomoMode !== 'break') {
+                            const mins = this.pomoDuration / 60;
+                            this.focusMinutesTracked += mins;
+                            this.pomoSessionsCompleted += 1;
+                            this.saveData();
+                            if (typeof confetti === 'function') confetti();
+                            alert(`🎉 ممتاز! أكملت جلسة تركيز ناجحة مدتها ${mins} دقيقة!`);
+                            this.setPomodoroMode('break', 5);
+                        } else {
+                            alert('🔔 انتهت الاستراحة، جاهز للجلسة القادمة؟');
+                            this.setPomodoroMode('work', 25);
+                        }
+
+                        document.getElementById('btn-start-pomo').classList.remove('hidden');
+                        document.getElementById('btn-pause-pomo').classList.add('hidden');
+                        this.renderHeaderProgress();
+                    }
+                }, 1000);
+            }
+
+            pausePomodoro() {
+                clearInterval(this.pomoTimer);
+                this.pomoIsRunning = false;
+                document.getElementById('btn-start-pomo').classList.remove('hidden');
+                document.getElementById('btn-pause-pomo').classList.add('hidden');
+            }
+
+            resetPomodoro() {
+                this.pausePomodoro();
+                this.pomoTimeLeft = this.pomoDuration;
+                this.updatePomoDisplay();
+            }
+
+            updatePomoDisplay() {
+                const mins = Math.floor(this.pomoTimeLeft / 60);
+                const secs = this.pomoTimeLeft % 60;
+                document.getElementById('timer-display').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            exportData() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+                    tasks: this.tasks,
+                    habits: this.habits,
+                    focusTime: this.focusMinutesTracked,
+                    pomoSessions: this.pomoSessionsCompleted
+                }));
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.setAttribute("href", dataStr);
+                dlAnchorElem.setAttribute("download", `Planner_Backup_${new Date().toISOString().slice(0,10)}.json`);
+                dlAnchorElem.click();
+            }
+
+            importData(event) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if (parsed.tasks) this.tasks = parsed.tasks;
+                        if (parsed.habits) this.habits = parsed.habits;
+                        if (parsed.focusTime) this.focusMinutesTracked = parsed.focusTime;
+                        if (parsed.pomoSessions) this.pomoSessionsCompleted = parsed.pomoSessions;
+                        
+                        this.saveData();
+                        this.renderAll();
+                        document.getElementById('modal-settings').classList.add('hidden');
+                        alert('تم استيراد البيانات بنجاح!');
+                    } catch (err) {
+                        alert('حدث خطأ في قراءة الملف');
+                    }
+                };
+                reader.readAsText(event.target.files[0]);
+            }
+
+            resetDayProgress() {
+                if (confirm('هل أنت تأكد من إعادة تصفير إنجاز اليوم؟')) {
+                    this.tasks.forEach(t => t.completed = false);
+                    this.habits.forEach(h => h.completed = false);
+                    this.saveData();
+                    this.renderAll();
+                    document.getElementById('modal-settings').classList.add('hidden');
+                }
+            }
+
+            renderAll() {
+                this.renderTasks();
+                this.renderHabits();
+                this.renderHeaderProgress();
+                this.renderChart();
+                this.highlightCurrentActiveTask();
+            }
+
+            renderHeaderProgress() {
+                const total = this.tasks.length;
+                const completed = this.tasks.filter(t => t.completed).length;
+                const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+                document.getElementById('completion-percentage').textContent = `${percent}%`;
+                document.getElementById('day-progress-bar').style.width = `${percent}%`;
+                document.getElementById('completed-count-text').innerHTML = `<i class="fa-solid fa-circle-check ml-1 text-emerald-300"></i> ${completed} من ${total} مكتملة`;
+
+                const xpGained = (completed * 20) + (this.pomoSessionsCompleted * 15);
+                const level = Math.floor(xpGained / 100) + 1;
+                
+                document.getElementById('header-user-level').textContent = `مستوى ${level}`;
+                document.getElementById('xp-text').innerHTML = `<i class="fa-solid fa-star"></i> +${xpGained} XP`;
+
+                document.getElementById('completed-pomo-count').textContent = this.pomoSessionsCompleted;
+                document.getElementById('pomo-total-mins').textContent = this.focusMinutesTracked;
+            }
+
+            getCategoryBadge(category) {
+                const badges = {
+                    'Study': { text: 'دراسة', bg: 'bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300' },
+                    'Coding': { text: 'برمجة', bg: 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300' },
+                    'Exercise': { text: 'رياضة', bg: 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' },
+                    'Work': { text: 'عمل', bg: 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300' },
+                    'Personal': { text: 'شخصي', bg: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' }
+                };
+                return badges[category] || badges['Personal'];
+            }
+
+            renderTasks() {
+                const container = document.getElementById('tasks-container');
+                let filtered = this.tasks;
+
+                if (this.currentCategory !== 'ALL') {
+                    filtered = this.tasks.filter(t => t.category === this.currentCategory);
+                }
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                            <i class="fa-solid fa-calendar-plus text-4xl text-slate-300 dark:text-slate-600 mb-3"></i>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 font-bold">لا توجد مهام في هذه القائمة</p>
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">اضغط على "إضافة مهمة" أو جرب "القوالب"</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = filtered.map(task => {
+                    const catBadge = this.getCategoryBadge(task.category);
+                    const priorityDot = task.priority === 'High' ? 'bg-red-500' : task.priority === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500';
+
+                    return `
+                        <div id="task-card-${task.id}" class="group flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-brand-500 transition-all bg-white dark:bg-slate-800/30 shadow-sm ${task.completed ? 'opacity-60 bg-slate-50 dark:bg-slate-900/40' : ''}">
+                            <div class="flex items-center gap-3.5 overflow-hidden">
+                                <button onclick="app.toggleTask(${task.id})" class="w-6 h-6 rounded-xl border-2 flex items-center justify-center transition flex-shrink-0 ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-brand-500'}">
+                                    ${task.completed ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+                                </button>
+                                
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
+                                        <span class="w-2 h-2 rounded-full ${priorityDot}" title="الأولوية"></span>
+                                        <span id="active-badge-${task.id}" class="hidden text-[10px] bg-brand-600 text-white font-bold px-2 py-0.5 rounded-full animate-pulse">جاري الآن</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                        <span class="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg text-[11px]"><i class="fa-regular fa-clock ml-1"></i>${task.startTime} - ${task.endTime}</span>
+                                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold ${catBadge.bg}">${catBadge.text}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="app.openTaskModal(app.tasks.find(t=>t.id==${task.id}))" class="p-2 text-slate-400 hover:text-brand-500 transition">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="app.deleteTask(${task.id})" class="p-2 text-slate-400 hover:text-red-500 transition">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                this.highlightCurrentActiveTask();
+            }
+
+            renderHabits() {
+                const container = document.getElementById('habits-list-container');
+                const filtered = this.habits.filter(h => h.type === this.currentHabitTab);
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-center text-slate-400 py-6">لا توجد عادات في هذا الروتين.</p>`;
+                    return;
+                }
+
+                container.innerHTML = filtered.map(habit => `
+                    <div class="flex items-center justify-between p-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/20 transition">
+                        <div class="flex items-center gap-3">
+                            <button onclick="app.toggleHabit(${habit.id})" class="w-5 h-5 rounded-lg border-2 flex items-center justify-center transition ${habit.completed ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600'}">
+                                ${habit.completed ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+                            </button>
+                            <span class="text-xs font-bold ${habit.completed ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}">${habit.name}</span>
+                        </div>
+                        <button onclick="app.deleteHabit(${habit.id})" class="text-slate-300 hover:text-red-400 text-xs px-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            highlightCurrentActiveTask() {
+                const now = new Date();
+                const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+                this.tasks.forEach(task => {
+                    const card = document.getElementById(`task-card-${task.id}`);
+                    const badge = document.getElementById(`active-badge-${task.id}`);
+                    
+                    if (card && badge) {
+                        if (!task.completed && currentTimeStr >= task.startTime && currentTimeStr <= task.endTime) {
+                            card.classList.add('active-task-card');
+                            badge.classList.remove('hidden');
+                        } else {
+                            card.classList.remove('active-task-card');
+                            badge.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+
+            renderChart() {
+                const ctx = document.getElementById('analyticsChart').getContext('2d');
+                const categories = ['Study', 'Coding', 'Exercise', 'Work', 'Personal'];
+                const counts = categories.map(cat => this.tasks.filter(t => t.category === cat).length);
+
+                if (this.chartInstance) {
+                    this.chartInstance.destroy();
+                }
+
+                const isDark = document.documentElement.classList.contains('dark');
+
+                this.chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['دراسة', 'برمجة', 'رياضة', 'عمل', 'شخصي'],
+                        datasets: [{
+                            data: counts.every(c => c === 0) ? [1, 1, 1, 1, 1] : counts,
+                            backgroundColor: ['#3b82f6', '#a855f7', '#10b981', '#f59e0b', '#64748b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'left',
+                                labels: {
+                                    color: isDark ? '#cbd5e1' : '#475569',
+                                    font: { family: 'Cairo', size: 10, weight: 'bold' }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+        }
+
+        // Global Engine Instantiation
+        let app;
+        window.addEventListener('DOMContentLoaded', () => {
+            app = new LifePlannerEngine();
+        });
+    </script>
+</body>
+</html>
